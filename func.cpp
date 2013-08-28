@@ -204,7 +204,7 @@ Function::emitCode(FunctionEmitContext *ctx, llvm::Function *function,
                    SourcePos firstStmtPos) {
     // Connect the __mask builtin to the location in memory that stores its
     // value
-    maskSymbol->storagePtr = ctx->GetFullMaskPointer();
+    maskSymbol->storagePtr = ctx->GetMaskPointer();
 
     // add debugging info for __mask
     maskSymbol->pos = firstStmtPos;
