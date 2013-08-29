@@ -100,24 +100,30 @@ public:
     /** Returns the mask value at entry to the current function. */
     llvm::Value *GetFunctionMask();
 
-    /** Returns the complete current mask value */
-    llvm::Value *GetMask();
+    /** Returns the mask value corresponding to "varying" control flow
+        within the current function.  (i.e. this doesn't include the effect
+        of the mask at function entry. */
+    llvm::Value *GetInternalMask();
 
-    /** Returns a pointer to storage in memory that stores the current 
+    /** Returns the complete current mask value--i.e. the logical AND of
+        the function entry mask and the internal mask. */
+    llvm::Value *GetFullMask();
+
+    /** Returns a pointer to storage in memory that stores the current full
         mask. */
-    llvm::Value *GetMaskPointer();
+    llvm::Value *GetFullMaskPointer();
 
     /** Provides the value of the mask at function entry */
     void SetFunctionMask(llvm::Value *val);
 
-    /** Sets the mask */
-    void SetMask(llvm::Value *newMask);
+    /** Sets the internal mask to a new value */
+    void SetInternalMask(llvm::Value *val);
 
-    /** Sets the mask to (oldMask & val) */
-    void SetMaskAnd(llvm::Value *oldMask, llvm::Value *val);
+    /** Sets the internal mask to (oldMask & val) */
+    void SetInternalMaskAnd(llvm::Value *oldMask, llvm::Value *val);
 
-    /** Sets the mask to (oldMask & ~val) */
-    void SetMaskAndNot(llvm::Value *oldMask, llvm::Value *test);
+    /** Sets the internal mask to (oldMask & ~val) */
+    void SetInternalMaskAndNot(llvm::Value *oldMask, llvm::Value *test);
 
     /** Emits a branch instruction to the basic block btrue if any of the
         lanes of current mask are on and bfalse if none are on. */
@@ -560,7 +566,12 @@ private:
 
     /** Pointer to stack-allocated memory that stores the current value of
         the full program mask. */
-    llvm::Value *maskPointer;
+    llvm::Value *fullMaskPointer;
+
+    /** Pointer to stack-allocated memory that stores the current value of
+        the program mask representing varying control flow within the
+        function. */
+    llvm::Value *internalMaskPointer;
 
     /** Value of the program mask when the function starts execution.  */
     llvm::Value *functionMaskValue;

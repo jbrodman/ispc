@@ -947,7 +947,21 @@ lLLVMConstantValue(const Type *type, llvm::LLVMContext *ctx, double value) {
 
 static llvm::Value *
 lMaskForSymbol(Symbol *baseSym, FunctionEmitContext *ctx) {
-    return ctx->GetMask();
+    if (baseSym == NULL)
+        return ctx->GetFullMask();
+
+    if (CastType<PointerType>(baseSym->type) != NULL ||
+        CastType<ReferenceType>(baseSym->type) != NULL)
+        // FIXME: for pointers, we really only want to do this for
+        // dereferencing the pointer, not for things like pointer
+        // arithmetic, when we may be able to use the internal mask,
+        // depending on context...
+        return ctx->GetFullMask();
+
+    llvm::Value *mask = (baseSym->parentFunction == ctx->GetFunction() &&
+                         baseSym->storageClass != SC_STATIC) ?
+        ctx->GetInternalMask() : ctx->GetFullMask();
+    return mask;
 }
 
 
@@ -1778,8 +1792,8 @@ lEmitLogicalOp(BinaryExpr::Op op, Expr *arg0, Expr *arg1,
     else {
         // Otherwise, the first operand is varying...  Save the current
         // value of the mask so that we can restore it at the end.
-        llvm::Value *oldMask = ctx->GetMask();
-        llvm::Value *oldFullMask = ctx->GetMask();
+        llvm::Value *oldMask = ctx->GetInternalMask();
+        llvm::Value *oldFullMask = ctx->GetFullMask();
 
         // Convert the second operand to be varying as well, so that we can
         // perform logical vector ops with its value.
@@ -1815,7 +1829,7 @@ lEmitLogicalOp(BinaryExpr::Op op, Expr *arg0, Expr *arg1,
             // For the instances where value0 was true, we need to inhibit
             // execution.
             ctx->SetCurrentBasicBlock(bbEvalValue1);
-            ctx->SetMaskAndNot(oldMask, value0);
+            ctx->SetInternalMaskAndNot(oldMask, value0);
 
             llvm::Value *value1 = arg1->GetValue(ctx);
             if (value1 == NULL) {
@@ -1829,7 +1843,7 @@ lEmitLogicalOp(BinaryExpr::Op op, Expr *arg0, Expr *arg1,
             // result = (value0 & old_mask) | (value1 & current_mask)
             llvm::Value *value1AndMask =
                 ctx->BinaryOperator(llvm::Instruction::And, value1,
-                                    ctx->GetMask(), "op&mask");
+                                    ctx->GetInternalMask(), "op&mask");
             llvm::Value *result =
                 ctx->BinaryOperator(llvm::Instruction::Or, value0AndMask,
                                     value1AndMask, "or_result");
@@ -1864,7 +1878,7 @@ lEmitLogicalOp(BinaryExpr::Op op, Expr *arg0, Expr *arg1,
             // For the lanes where value0 was false, execution needs to be
             // disabled: mask = (mask & value0).
             ctx->SetCurrentBasicBlock(bbEvalValue1);
-            ctx->SetMaskAnd(oldMask, value0);
+            ctx->SetInternalMaskAnd(oldMask, value0);
 
             llvm::Value *value1 = arg1->GetValue(ctx);
             if (value1 == NULL) {
@@ -1880,7 +1894,7 @@ lEmitLogicalOp(BinaryExpr::Op op, Expr *arg0, Expr *arg1,
                                     oldFullMask, "op&mask");
             llvm::Value *value1AndMask =
                 ctx->BinaryOperator(llvm::Instruction::And, value1,
-                                    ctx->GetMask(), "value1&mask");
+                                    ctx->GetInternalMask(), "value1&mask");
             llvm::Value *result =
                 ctx->BinaryOperator(llvm::Instruction::And, value0AndMask,
                                     value1AndMask, "or_result");
@@ -1891,7 +1905,7 @@ lEmitLogicalOp(BinaryExpr::Op op, Expr *arg0, Expr *arg1,
         // And finally we always end up in bbLogicalDone, where we restore
         // the old mask and return the computed result
         ctx->SetCurrentBasicBlock(bbLogicalDone);
-        ctx->SetMask(oldMask);
+        ctx->SetInternalMask(oldMask);
         return ctx->LoadInst(retPtr);
     }
 }
@@ -3148,7 +3162,7 @@ lEmitSelectExprCode(FunctionEmitContext *ctx, llvm::Value *testVal,
     llvm::Value *testAndMask =
         ctx->BinaryOperator(llvm::Instruction::And, testVal, oldMask,
                             "test&mask");
-    ctx->SetMask(testAndMask);
+    ctx->SetInternalMask(testAndMask);
     llvm::Value *exprVal = expr->GetValue(ctx);
     ctx->StoreInst(exprVal, exprPtr);
     ctx->BranchInst(bbDone);
@@ -3207,8 +3221,8 @@ SelectExpr::GetValue(FunctionEmitContext *ctx) const {
         // the test is a varying bool type
         llvm::Value *testVal = test->GetValue(ctx);
         AssertPos(pos, testVal->getType() == LLVMTypes::MaskType);
-        llvm::Value *oldMask = ctx->GetMask();
-        llvm::Value *fullMask = ctx->GetMask();
+        llvm::Value *oldMask = ctx->GetInternalMask();
+        llvm::Value *fullMask = ctx->GetFullMask();
 
         // We don't want to incur the overhead for short-circuit evaluation
         // for expressions that are both computationally simple and safe to
@@ -3237,7 +3251,7 @@ SelectExpr::GetValue(FunctionEmitContext *ctx) const {
             lEmitSelectExprCode(ctx, testVal, oldMask, fullMask, expr1,
                                 expr1Ptr);
         else {
-            ctx->SetMaskAnd(oldMask, testVal);
+            ctx->SetInternalMaskAnd(oldMask, testVal);
             llvm::Value *expr1Val = expr1->GetValue(ctx);
             ctx->StoreInst(expr1Val, expr1Ptr);
         }
@@ -3248,12 +3262,12 @@ SelectExpr::GetValue(FunctionEmitContext *ctx) const {
                                 expr2Ptr);
         }
         else {
-            ctx->SetMaskAndNot(oldMask, testVal);
+            ctx->SetInternalMaskAndNot(oldMask, testVal);
             llvm::Value *expr2Val = expr2->GetValue(ctx);
             ctx->StoreInst(expr2Val, expr2Ptr);
         }
 
-        ctx->SetMask(oldMask);
+        ctx->SetInternalMask(oldMask);
         llvm::Value *expr1Val = ctx->LoadInst(expr1Ptr);
         llvm::Value *expr2Val = ctx->LoadInst(expr2Ptr);
         return lEmitVaryingSelect(ctx, testVal, expr1Val, expr2Val, type);
@@ -4953,7 +4967,7 @@ VectorMemberExpr::GetValue(FunctionEmitContext *ctx) const {
 
         // FIXME: we should be able to use the internal mask here according
         // to the same logic where it's used elsewhere
-        llvm::Value *elementMask = ctx->GetMask();
+        llvm::Value *elementMask = ctx->GetFullMask();
 
         const Type *elementPtrType = basePtrType->IsUniformType() ?
             PointerType::GetUniform(exprVectorType->GetElementType()) :
@@ -7390,7 +7404,9 @@ DerefExpr::GetValue(FunctionEmitContext *ctx) const {
     if (lVaryingStructHasUniformMember(type, pos))
         return NULL;
 
-    llvm::Value *mask = ctx->GetMask();
+    Symbol *baseSym = expr->GetBaseSymbol();
+    llvm::Value *mask = baseSym ? lMaskForSymbol(baseSym, ctx) :
+        ctx->GetFullMask();
 
     ctx->SetDebugPos(pos);
     return ctx->LoadInst(ptr, mask, type);
