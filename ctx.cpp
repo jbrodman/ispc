@@ -253,8 +253,8 @@ FunctionEmitContext::FunctionEmitContext(Function *func, Symbol *funSym,
 
     functionMaskValue = LLVMMaskAllOn;
 
-    fullMaskPointer = AllocaInst(LLVMTypes::MaskType, "full_mask_memory");
-    StoreInst(LLVMMaskAllOn, fullMaskPointer);
+    maskPointer = AllocaInst(LLVMTypes::MaskType, "full_mask_memory");
+    StoreInst(LLVMMaskAllOn, maskPointer);
 
     blockEntryMask = NULL;
     breakLanesPtr = continueLanesPtr = NULL;
@@ -418,15 +418,15 @@ FunctionEmitContext::GetInternalMask() {
 
 
 llvm::Value *
-FunctionEmitContext::GetFullMask() {
+FunctionEmitContext::GetMask() {
     return BinaryOperator(llvm::Instruction::And, GetInternalMask(),
                           functionMaskValue, "internal_mask&function_mask");
 }
 
 
 llvm::Value *
-FunctionEmitContext::GetFullMaskPointer() {
-    return fullMaskPointer;
+FunctionEmitContext::GetMaskPointer() {
+    return maskPointer;
 }
 
 
@@ -434,7 +434,7 @@ void
 FunctionEmitContext::SetFunctionMask(llvm::Value *value) {
     functionMaskValue = value;
     if (bblock != NULL)
-        StoreInst(GetFullMask(), fullMaskPointer);
+        StoreInst(GetMask(), maskPointer);
 }
 
 
@@ -448,7 +448,7 @@ void
 FunctionEmitContext::SetInternalMask(llvm::Value *value) {
     StoreInst(value, internalMaskPointer);
     // kludge so that __mask returns the right value in ispc code.
-    StoreInst(GetFullMask(), fullMaskPointer);
+    StoreInst(GetMask(), maskPointer);
 }
 
 
@@ -473,7 +473,7 @@ FunctionEmitContext::SetInternalMaskAndNot(llvm::Value *oldMask, llvm::Value *te
 void
 FunctionEmitContext::BranchIfMaskAny(llvm::BasicBlock *btrue, llvm::BasicBlock *bfalse) {
     AssertPos(currentPos, bblock != NULL);
-    llvm::Value *any = Any(GetFullMask());
+    llvm::Value *any = Any(GetMask());
     BranchInst(btrue, bfalse, any);
     // It's illegal to add any additional instructions to the basic block
     // now that it's terminated, so set bblock to NULL to be safe
@@ -484,7 +484,7 @@ FunctionEmitContext::BranchIfMaskAny(llvm::BasicBlock *btrue, llvm::BasicBlock *
 void
 FunctionEmitContext::BranchIfMaskAll(llvm::BasicBlock *btrue, llvm::BasicBlock *bfalse) {
     AssertPos(currentPos, bblock != NULL);
-    llvm::Value *all = All(GetFullMask());
+    llvm::Value *all = All(GetMask());
     BranchInst(btrue, bfalse, all);
     // It's illegal to add any additional instructions to the basic block
     // now that it's terminated, so set bblock to NULL to be safe
@@ -1285,7 +1285,7 @@ FunctionEmitContext::CurrentLanesReturned(Expr *expr, bool doCoherenceCheck) {
             LoadInst(returnedLanesPtr, "old_returned_lanes");
         llvm::Value *newReturnedLanes =
             BinaryOperator(llvm::Instruction::Or, oldReturnedLanes,
-                           GetFullMask(), "old_mask|returned_lanes");
+                           GetMask(), "old_mask|returned_lanes");
 
         // For 'coherent' return statements, emit code to check if all
         // lanes have returned
@@ -1495,7 +1495,7 @@ FunctionEmitContext::AddInstrumentationPoint(const char *note) {
     // arg 3: line number
     args.push_back(LLVMInt32(currentPos.first_line));
     // arg 4: current mask, movmsk'ed down to an int64
-    args.push_back(LaneMask(GetFullMask()));
+    args.push_back(LaneMask(GetMask()));
 
     llvm::Function *finst = m->module->getFunction("ISPCInstrument");
     CallInst(finst, NULL, args, "");
@@ -2573,7 +2573,7 @@ FunctionEmitContext::LoadInst(llvm::Value *ptr, llvm::Value *mask,
     else {
         // Otherwise we should have a varying ptr and it's time for a
         // gather.
-        return gather(ptr, ptrType, GetFullMask(), name);
+        return gather(ptr, ptrType, GetMask(), name);
     }
 }
 
@@ -3034,7 +3034,7 @@ FunctionEmitContext::StoreInst(llvm::Value *value, llvm::Value *ptr,
         AssertPos(currentPos, ptrType->IsVaryingType());
         // We have a varying ptr (an array of pointers), so it's time to
         // scatter
-        scatter(value, ptr, valueType, ptrType, GetFullMask());
+        scatter(value, ptr, valueType, ptrType, GetMask());
     }
 }
 
@@ -3300,7 +3300,7 @@ FunctionEmitContext::CallInst(llvm::Value *func, const FunctionType *funcType,
     AssertPos(currentPos, argVals.size() + 1 == calleeArgCount ||
            argVals.size() == calleeArgCount);
     if (argVals.size() + 1 == calleeArgCount)
-        argVals.push_back(GetFullMask());
+        argVals.push_back(GetMask());
 
     if (llvm::isa<llvm::VectorType>(func->getType()) == false) {
         // Regular 'uniform' function call--just one function or function
@@ -3354,7 +3354,7 @@ FunctionEmitContext::CallInst(llvm::Value *func, const FunctionType *funcType,
         // pointing to.  It starts out initialized with the mask of
         // currently running program instances.
         llvm::Value *maskPtr = AllocaInst(LLVMTypes::MaskType);
-        StoreInst(GetFullMask(), maskPtr);
+        StoreInst(GetMask(), maskPtr);
 
         // And now we branch to the test to see if there's more work to be
         // done.
@@ -3547,7 +3547,7 @@ FunctionEmitContext::LaunchInst(llvm::Value *callee,
 
     if (argStructType->getNumElements() == argVals.size() + 1) {
         // copy in the mask
-        llvm::Value *mask = GetFullMask();
+        llvm::Value *mask = GetMask();
         llvm::Value *ptr = AddElementOffset(argmem, argVals.size(), NULL,
                                             "funarg_mask");
         StoreInst(mask, ptr);

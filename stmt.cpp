@@ -549,7 +549,7 @@ IfStmt::emitVaryingIf(FunctionEmitContext *ctx, llvm::Value *ltest) const {
         llvm::BasicBlock *bDone = ctx->CreateBasicBlock("cif_done");
 
         // Jump to either bAllOn or bMixedOn, depending on the mask's value
-        llvm::Value *maskAllQ = ctx->All(ctx->GetFullMask());
+        llvm::Value *maskAllQ = ctx->All(ctx->GetMask());
         ctx->BranchInst(bAllOn, bMixedOn, maskAllQ);
 
         // Emit code for the 'mask all on' case
@@ -696,7 +696,7 @@ IfStmt::emitMaskMixed(FunctionEmitContext *ctx, llvm::Value *oldMask,
 
     // Do any of the program instances want to run the 'true'
     // block?  If not, jump ahead to bNext.
-    llvm::Value *maskAnyTrueQ = ctx->Any(ctx->GetFullMask());
+    llvm::Value *maskAnyTrueQ = ctx->Any(ctx->GetMask());
     ctx->BranchInst(bRunTrue, bNext, maskAnyTrueQ);
 
     // Emit statements for true
@@ -713,7 +713,7 @@ IfStmt::emitMaskMixed(FunctionEmitContext *ctx, llvm::Value *oldMask,
 
     // Similarly, check to see if any of the instances want to
     // run the 'false' block...
-    llvm::Value *maskAnyFalseQ = ctx->Any(ctx->GetFullMask());
+    llvm::Value *maskAnyFalseQ = ctx->Any(ctx->GetMask());
     ctx->BranchInst(bRunFalse, bDone, maskAnyFalseQ);
 
     // Emit code for false
@@ -844,7 +844,7 @@ void DoStmt::EmitCode(FunctionEmitContext *ctx) const {
 
     // And now emit code for the loop body
     ctx->SetCurrentBasicBlock(bloop);
-    ctx->SetBlockEntryMask(ctx->GetFullMask());
+    ctx->SetBlockEntryMask(ctx->GetMask());
     ctx->SetDebugPos(pos);
     // FIXME: in the StmtList::EmitCode() method takes starts/stops a new
     // scope around the statements in the list.  So if the body is just a
@@ -1055,7 +1055,7 @@ ForStmt::EmitCode(FunctionEmitContext *ctx) const {
 
     // On to emitting the code for the loop body.
     ctx->SetCurrentBasicBlock(bloop);
-    ctx->SetBlockEntryMask(ctx->GetFullMask());
+    ctx->SetBlockEntryMask(ctx->GetMask());
     ctx->AddInstrumentationPoint("for loop body");
     if (!dynamic_cast<StmtList *>(stmts))
         ctx->StartScope();
@@ -1786,7 +1786,7 @@ ForeachStmt::EmitCode(FunctionEmitContext *ctx) const {
         ctx->AddInstrumentationPoint("foreach loop body (masked)");
         ctx->SetContinueTarget(bbMaskedBodyContinue);
         ctx->DisableGatherScatterWarnings();
-        ctx->SetBlockEntryMask(ctx->GetFullMask());
+        ctx->SetBlockEntryMask(ctx->GetMask());
         stmts->EmitCode(ctx);
         ctx->EnableGatherScatterWarnings();
         ctx->BranchInst(bbMaskedBodyContinue);
@@ -1958,7 +1958,7 @@ ForeachActiveStmt::EmitCode(FunctionEmitContext *ctx) const {
     // to be processed by a pass through the loop body.  It starts out with
     // the current execution mask (which should never be all off going in
     // to this)...
-    llvm::Value *oldFullMask = ctx->GetFullMask();
+    llvm::Value *oldFullMask = ctx->GetMask();
     llvm::Value *maskBitsPtr =
         ctx->AllocaInst(LLVMTypes::Int64Type, "mask_bits");
     llvm::Value *movmsk = ctx->LaneMask(oldFullMask);
@@ -2025,7 +2025,7 @@ ForeachActiveStmt::EmitCode(FunctionEmitContext *ctx) const {
     }
 
     ctx->SetCurrentBasicBlock(bbBody); {
-        ctx->SetBlockEntryMask(ctx->GetFullMask());
+        ctx->SetBlockEntryMask(ctx->GetMask());
 
         // Run the code in the body of the loop.  This is easy now.
         if (stmts)
@@ -2145,7 +2145,7 @@ ForeachUniqueStmt::EmitCode(FunctionEmitContext *ctx) const {
     // to be processed by a pass through the foreach_unique loop body.  It
     // starts out with the full execution mask (which should never be all
     // off going in to this)...
-    llvm::Value *oldFullMask = ctx->GetFullMask();
+    llvm::Value *oldFullMask = ctx->GetMask();
     llvm::Value *maskBitsPtr = ctx->AllocaInst(LLVMTypes::Int64Type, "mask_bits");
     llvm::Value *movmsk = ctx->LaneMask(oldFullMask);
     ctx->StoreInst(movmsk, maskBitsPtr);
@@ -2240,7 +2240,7 @@ ForeachUniqueStmt::EmitCode(FunctionEmitContext *ctx) const {
     }
 
     ctx->SetCurrentBasicBlock(bbBody); {
-        ctx->SetBlockEntryMask(ctx->GetFullMask());
+        ctx->SetBlockEntryMask(ctx->GetMask());
         // Run the code in the body of the loop.  This is easy now.
         if (stmts)
             stmts->EmitCode(ctx);
@@ -2558,7 +2558,7 @@ SwitchStmt::EmitCode(FunctionEmitContext *ctx) const {
     bool isUniformCF = (type->IsUniformType() &&
                         lHasVaryingBreakOrContinue(stmts) == false);
     ctx->StartSwitch(isUniformCF, bbDone);
-    ctx->SetBlockEntryMask(ctx->GetFullMask());
+    ctx->SetBlockEntryMask(ctx->GetMask());
     ctx->SwitchInst(exprValue, svi.defaultBlock ? svi.defaultBlock : bbDone,
                     svi.caseBlocks, svi.nextBlock);
 
@@ -3095,7 +3095,7 @@ PrintStmt::EmitCode(FunctionEmitContext *ctx) const {
     llvm::Function *printFunc = m->module->getFunction("__do_print");
     AssertPos(pos, printFunc);
 
-    llvm::Value *mask = ctx->GetFullMask();
+    llvm::Value *mask = ctx->GetMask();
     // Set up the rest of the parameters to it
     args[0] = ctx->GetStringPtr(format);
     args[1] = ctx->GetStringPtr(argTypes);
@@ -3169,7 +3169,7 @@ AssertStmt::EmitCode(FunctionEmitContext *ctx) const {
         return;
     }
     args.push_back(exprValue);
-    args.push_back(ctx->GetFullMask());
+    args.push_back(ctx->GetMask());
     ctx->CallInst(assertFunc, NULL, args, "");
 
     free(errorString);

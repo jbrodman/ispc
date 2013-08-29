@@ -107,11 +107,11 @@ public:
 
     /** Returns the complete current mask value--i.e. the logical AND of
         the function entry mask and the internal mask. */
-    llvm::Value *GetFullMask();
+    llvm::Value *GetMask();
 
     /** Returns a pointer to storage in memory that stores the current full
         mask. */
-    llvm::Value *GetFullMaskPointer();
+    llvm::Value *GetMaskPointer();
 
     /** Provides the value of the mask at function entry */
     void SetFunctionMask(llvm::Value *val);
@@ -566,7 +566,7 @@ private:
 
     /** Pointer to stack-allocated memory that stores the current value of
         the full program mask. */
-    llvm::Value *fullMaskPointer;
+    llvm::Value *maskPointer;
 
     /** Pointer to stack-allocated memory that stores the current value of
         the program mask representing varying control flow within the

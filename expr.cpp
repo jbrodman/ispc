@@ -948,7 +948,7 @@ lLLVMConstantValue(const Type *type, llvm::LLVMContext *ctx, double value) {
 static llvm::Value *
 lMaskForSymbol(Symbol *baseSym, FunctionEmitContext *ctx) {
     if (baseSym == NULL)
-        return ctx->GetFullMask();
+        return ctx->GetMask();
 
     if (CastType<PointerType>(baseSym->type) != NULL ||
         CastType<ReferenceType>(baseSym->type) != NULL)
@@ -956,11 +956,11 @@ lMaskForSymbol(Symbol *baseSym, FunctionEmitContext *ctx) {
         // dereferencing the pointer, not for things like pointer
         // arithmetic, when we may be able to use the internal mask,
         // depending on context...
-        return ctx->GetFullMask();
+        return ctx->GetMask();
 
     llvm::Value *mask = (baseSym->parentFunction == ctx->GetFunction() &&
                          baseSym->storageClass != SC_STATIC) ?
-        ctx->GetInternalMask() : ctx->GetFullMask();
+        ctx->GetInternalMask() : ctx->GetMask();
     return mask;
 }
 
@@ -1793,7 +1793,7 @@ lEmitLogicalOp(BinaryExpr::Op op, Expr *arg0, Expr *arg1,
         // Otherwise, the first operand is varying...  Save the current
         // value of the mask so that we can restore it at the end.
         llvm::Value *oldMask = ctx->GetInternalMask();
-        llvm::Value *oldFullMask = ctx->GetFullMask();
+        llvm::Value *oldFullMask = ctx->GetMask();
 
         // Convert the second operand to be varying as well, so that we can
         // perform logical vector ops with its value.
@@ -3222,7 +3222,7 @@ SelectExpr::GetValue(FunctionEmitContext *ctx) const {
         llvm::Value *testVal = test->GetValue(ctx);
         AssertPos(pos, testVal->getType() == LLVMTypes::MaskType);
         llvm::Value *oldMask = ctx->GetInternalMask();
-        llvm::Value *fullMask = ctx->GetFullMask();
+        llvm::Value *fullMask = ctx->GetMask();
 
         // We don't want to incur the overhead for short-circuit evaluation
         // for expressions that are both computationally simple and safe to
@@ -4967,7 +4967,7 @@ VectorMemberExpr::GetValue(FunctionEmitContext *ctx) const {
 
         // FIXME: we should be able to use the internal mask here according
         // to the same logic where it's used elsewhere
-        llvm::Value *elementMask = ctx->GetFullMask();
+        llvm::Value *elementMask = ctx->GetMask();
 
         const Type *elementPtrType = basePtrType->IsUniformType() ?
             PointerType::GetUniform(exprVectorType->GetElementType()) :
@@ -7406,7 +7406,7 @@ DerefExpr::GetValue(FunctionEmitContext *ctx) const {
 
     Symbol *baseSym = expr->GetBaseSymbol();
     llvm::Value *mask = baseSym ? lMaskForSymbol(baseSym, ctx) :
-        ctx->GetFullMask();
+        ctx->GetMask();
 
     ctx->SetDebugPos(pos);
     return ctx->LoadInst(ptr, mask, type);
