@@ -947,6 +947,8 @@ lLLVMConstantValue(const Type *type, llvm::LLVMContext *ctx, double value) {
 
 static llvm::Value *
 lMaskForSymbol(Symbol *baseSym, FunctionEmitContext *ctx) {
+    return ctx->GetMask();
+    /*
     if (baseSym == NULL)
         return ctx->GetMask();
 
@@ -962,6 +964,7 @@ lMaskForSymbol(Symbol *baseSym, FunctionEmitContext *ctx) {
                          baseSym->storageClass != SC_STATIC) ?
         ctx->GetInternalMask() : ctx->GetMask();
     return mask;
+    */
 }
 
 
