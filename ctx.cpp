@@ -1264,7 +1264,7 @@ FunctionEmitContext::CurrentLanesReturned(Expr *expr, bool doCoherenceCheck) {
                     // in the return value memory; this preserves the return
                     // values from other lanes that may have executed return
                     // statements previously.
-                    StoreInst(retVal, returnValuePtr, GetInternalMask(),
+                    StoreInst(retVal, returnValuePtr, GetMask(),
                               returnType, PointerType::GetUniform(returnType));
                 }
             }
