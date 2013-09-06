@@ -1795,7 +1795,7 @@ lEmitLogicalOp(BinaryExpr::Op op, Expr *arg0, Expr *arg1,
     else {
         // Otherwise, the first operand is varying...  Save the current
         // value of the mask so that we can restore it at the end.
-        llvm::Value *oldMask = ctx->GetInternalMask();
+        llvm::Value *oldMask = ctx->GetMask();
         llvm::Value *oldFullMask = ctx->GetMask();
 
         // Convert the second operand to be varying as well, so that we can
@@ -1846,7 +1846,7 @@ lEmitLogicalOp(BinaryExpr::Op op, Expr *arg0, Expr *arg1,
             // result = (value0 & old_mask) | (value1 & current_mask)
             llvm::Value *value1AndMask =
                 ctx->BinaryOperator(llvm::Instruction::And, value1,
-                                    ctx->GetInternalMask(), "op&mask");
+                                    ctx->GetMask(), "op&mask");
             llvm::Value *result =
                 ctx->BinaryOperator(llvm::Instruction::Or, value0AndMask,
                                     value1AndMask, "or_result");
@@ -1897,7 +1897,7 @@ lEmitLogicalOp(BinaryExpr::Op op, Expr *arg0, Expr *arg1,
                                     oldFullMask, "op&mask");
             llvm::Value *value1AndMask =
                 ctx->BinaryOperator(llvm::Instruction::And, value1,
-                                    ctx->GetInternalMask(), "value1&mask");
+                                    ctx->GetMask(), "value1&mask");
             llvm::Value *result =
                 ctx->BinaryOperator(llvm::Instruction::And, value0AndMask,
                                     value1AndMask, "or_result");
