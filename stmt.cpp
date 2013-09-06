@@ -538,7 +538,7 @@ IfStmt::emitMaskedTrueAndFalse(FunctionEmitContext *ctx, llvm::Value *oldMask,
  */
 void
 IfStmt::emitVaryingIf(FunctionEmitContext *ctx, llvm::Value *ltest) const {
-    llvm::Value *oldMask = ctx->GetInternalMask();
+    llvm::Value *oldMask = ctx->GetMask();
     if (doAllCheck) {
         // We can't tell if the mask going into the if is all on at the
         // compile time.  Emit code to check for this and then either run
@@ -916,7 +916,7 @@ void DoStmt::EmitCode(FunctionEmitContext *ctx) const {
         // For the varying case, update the mask based on the value of the
         // test.  If any program instances still want to be running, jump
         // to the top of the loop.  Otherwise, jump out.
-        llvm::Value *mask = ctx->GetInternalMask();
+        llvm::Value *mask = ctx->GetMask();
         ctx->SetInternalMaskAnd(mask, testValue);
         ctx->BranchIfMaskAny(bloop, bexit);
     }
@@ -1048,7 +1048,7 @@ ForStmt::EmitCode(FunctionEmitContext *ctx) const {
         ctx->BranchInst(bloop, bexit, ltest);
     }
     else {
-        llvm::Value *mask = ctx->GetInternalMask();
+        llvm::Value *mask = ctx->GetMask();
         ctx->SetInternalMaskAnd(mask, ltest);
         ctx->BranchIfMaskAny(bloop, bexit);
     }
@@ -1372,7 +1372,7 @@ ForeachStmt::EmitCode(FunctionEmitContext *ctx) const {
     llvm::BasicBlock *bbMaskedBody = ctx->CreateBasicBlock("foreach_masked_body");
     llvm::BasicBlock *bbExit = ctx->CreateBasicBlock("foreach_exit");
 
-    llvm::Value *oldMask = ctx->GetInternalMask();
+    llvm::Value *oldMask = ctx->GetMask();
     llvm::Value *oldFunctionMask = ctx->GetFunctionMask();
 
     ctx->SetDebugPos(pos);
@@ -1952,7 +1952,7 @@ ForeachActiveStmt::EmitCode(FunctionEmitContext *ctx) const {
     llvm::BasicBlock *bbDone = ctx->CreateBasicBlock("foreach_active_done");
 
     // Save the old mask so that we can restore it at the end
-    llvm::Value *oldInternalMask = ctx->GetInternalMask();
+    llvm::Value *oldInternalMask = ctx->GetMask();
 
     // Now, *maskBitsPtr will maintain a bitmask for the lanes that remain
     // to be processed by a pass through the loop body.  It starts out with
@@ -2139,7 +2139,7 @@ ForeachUniqueStmt::EmitCode(FunctionEmitContext *ctx) const {
     ctx->StartScope();
 
     // Save the old internal mask so that we can restore it at the end
-    llvm::Value *oldMask = ctx->GetInternalMask();
+    llvm::Value *oldMask = ctx->GetMask();
 
     // Now, *maskBitsPtr will maintain a bitmask for the lanes that remain
     // to be processed by a pass through the foreach_unique loop body.  It
@@ -2642,7 +2642,7 @@ UnmaskedStmt::EmitCode(FunctionEmitContext *ctx) const {
     if (!ctx->GetCurrentBasicBlock() || !stmts)
         return;
 
-    llvm::Value *oldInternalMask = ctx->GetInternalMask();
+    llvm::Value *oldInternalMask = ctx->GetMask();
     llvm::Value *oldFunctionMask = ctx->GetFunctionMask();
 
     ctx->SetInternalMask(LLVMMaskAllOn);
