@@ -3224,7 +3224,7 @@ SelectExpr::GetValue(FunctionEmitContext *ctx) const {
         // the test is a varying bool type
         llvm::Value *testVal = test->GetValue(ctx);
         AssertPos(pos, testVal->getType() == LLVMTypes::MaskType);
-        llvm::Value *oldMask = ctx->GetInternalMask();
+        llvm::Value *oldMask = ctx->GetMask();
         llvm::Value *fullMask = ctx->GetMask();
 
         // We don't want to incur the overhead for short-circuit evaluation
