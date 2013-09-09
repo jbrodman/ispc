@@ -505,7 +505,7 @@ FunctionEmitContext::BranchIfMaskNone(llvm::BasicBlock *btrue, llvm::BasicBlock 
 
 void
 FunctionEmitContext::StartUniformIf() {
-    controlFlowInfo.push_back(CFInfo::GetIf(true, GetInternalMask()));
+    controlFlowInfo.push_back(CFInfo::GetIf(true, GetMask()));
 }
 
 
@@ -569,7 +569,7 @@ FunctionEmitContext::EndIf() {
             BinaryOperator(llvm::Instruction::Xor,
                            bcLanes, LLVMMaskAllOn,
                            "!(break|continue)_lanes");
-        llvm::Value *oldMask = GetInternalMask();
+        llvm::Value *oldMask = GetMask();
         llvm::Value *newMask =
             BinaryOperator(llvm::Instruction::And, oldMask,
                            notBreakOrContinue, "new_mask");
@@ -583,7 +583,7 @@ FunctionEmitContext::StartLoop(llvm::BasicBlock *bt, llvm::BasicBlock *ct,
                                bool uniformCF) {
     // Store the current values of various loop-related state so that we
     // can restore it when we exit this loop.
-    llvm::Value *oldMask = GetInternalMask();
+    llvm::Value *oldMask = GetMask();
     controlFlowInfo.push_back(CFInfo::GetLoop(uniformCF, breakTarget,
                                               continueTarget, breakLanesPtr,
                                               continueLanesPtr, oldMask, blockEntryMask));
@@ -641,7 +641,7 @@ FunctionEmitContext::StartForeach(ForeachType ft) {
 
     // Store the current values of various loop-related state so that we
     // can restore it when we exit this loop.
-    llvm::Value *oldMask = GetInternalMask();
+    llvm::Value *oldMask = GetMask();
     controlFlowInfo.push_back(CFInfo::GetForeach(ft, breakTarget, continueTarget,
                                                  breakLanesPtr, continueLanesPtr,
                                                  oldMask, blockEntryMask));
@@ -737,7 +737,7 @@ FunctionEmitContext::Break(bool doCoherenceCheck) {
         // that have executed a 'break' statement:
         // breakLanes = breakLanes | mask
         AssertPos(currentPos, breakLanesPtr != NULL);
-        llvm::Value *mask = GetInternalMask();
+        llvm::Value *mask = GetMask();
         llvm::Value *breakMask = LoadInst(breakLanesPtr,
                                           "break_mask");
         llvm::Value *newMask = BinaryOperator(llvm::Instruction::Or,
@@ -803,7 +803,7 @@ FunctionEmitContext::Continue(bool doCoherenceCheck) {
         // Otherwise update the stored value of which lanes have 'continue'd.
         // continueLanes = continueLanes | mask
         AssertPos(currentPos, continueLanesPtr);
-        llvm::Value *mask = GetInternalMask();
+        llvm::Value *mask = GetMask();
         llvm::Value *continueMask =
             LoadInst(continueLanesPtr, "continue_mask");
         llvm::Value *newMask =
@@ -907,7 +907,7 @@ FunctionEmitContext::RestoreContinuedLanes() {
         return;
 
     // mask = mask & continueFlags
-    llvm::Value *mask = GetInternalMask();
+    llvm::Value *mask = GetMask();
     llvm::Value *continueMask = LoadInst(continueLanesPtr,
                                          "continue_mask");
     llvm::Value *orMask = BinaryOperator(llvm::Instruction::Or,
@@ -921,7 +921,7 @@ FunctionEmitContext::RestoreContinuedLanes() {
 
 void
 FunctionEmitContext::StartSwitch(bool cfIsUniform, llvm::BasicBlock *bbBreak) {
-    llvm::Value *oldMask = GetInternalMask();
+    llvm::Value *oldMask = GetMask();
     controlFlowInfo.push_back(CFInfo::GetSwitch(cfIsUniform, breakTarget,
                                                 continueTarget, breakLanesPtr,
                                                 continueLanesPtr, oldMask,
@@ -1042,7 +1042,7 @@ FunctionEmitContext::EmitDefaultLabel(bool checkMask, SourcePos pos) {
     // The mask may have some lanes on, which corresponds to the previous
     // label falling through; compute the updated mask by ANDing with the
     // current mask.
-    llvm::Value *oldMask = GetInternalMask();
+    llvm::Value *oldMask = GetMask();
     llvm::Value *newMask = BinaryOperator(llvm::Instruction::Or, oldMask,
                                           matchesDefault, "old_mask|matches_default");
     SetInternalMask(newMask);
@@ -1094,7 +1094,7 @@ FunctionEmitContext::EmitCaseLabel(int value, bool checkMask, SourcePos pos) {
                                       matchesCaseValue, "entry_mask&case_match");
 
     // Take the surviving lanes and turn on the mask for them.
-    llvm::Value *oldMask = GetInternalMask();
+    llvm::Value *oldMask = GetMask();
     llvm::Value *newMask = BinaryOperator(llvm::Instruction::Or, oldMask,
                                           matchesCaseValue, "mask|case_match");
     SetInternalMask(newMask);
@@ -3339,7 +3339,7 @@ FunctionEmitContext::CallInst(llvm::Value *func, const FunctionType *funcType,
         llvm::BasicBlock *bbDone = CreateBasicBlock("varying_funcall_done");
 
         // Get the current mask value so we can restore it later
-        llvm::Value *origMask = GetInternalMask();
+        llvm::Value *origMask = GetMask();
 
         // First allocate memory to accumulate the various program
         // instances' return values...
