@@ -837,6 +837,22 @@ llvm::raw_ostream &CWriter::printType(llvm::raw_ostream &Out, llvm::Type *Ty,
         Out << "    return ret;\n";
         Out << "  }\n";
     }
+    
+    // print copy constructor
+    if (STy->getNumElements() > 0) {
+      Out << "  " << NameSoFar << "(const " << NameSoFar << " &o)";
+        unsigned Idx = 0;
+        Out << " {\n";
+        for (Idx = 0; Idx < STy->getNumElements(); ++Idx)
+            Out << "    field" << Idx << " = o.field" << Idx << ";\n";
+        Out << "  }\n";
+    }
+
+    // print dummy constructor
+    if (STy->getNumElements() > 0) {
+      Out << "  " << NameSoFar << "()";
+        Out << " { }\n";
+    }
 
     unsigned Idx = 0;
     for (llvm::StructType::element_iterator I = STy->element_begin(),
@@ -891,7 +907,18 @@ llvm::raw_ostream &CWriter::printType(llvm::raw_ostream &Out, llvm::Type *Ty,
     for (unsigned Idx = 0; Idx < NumElements; ++Idx)
         Out << "    ret.array[" << Idx << "] = v" << Idx << ";\n";
     Out << "    return ret;\n";
+    Out << "  }\n";
+
+    // copy constructor
+    Out << "  " << NameSoFar << "(const " << NameSoFar << " &o)";
+    Out << " {\n";
+    for (unsigned Idx = 0; Idx < NumElements; ++Idx)
+        Out << "    array[" << Idx << "] = o.array[" << Idx << "];\n";
     Out << "  }\n  ";
+
+    // dummy constructor
+    Out << "  " << NameSoFar << "()";
+    Out << " { }\n";
 
     // if it's an array of i8s, also provide a version that takes a const
     // char *
