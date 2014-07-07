@@ -447,7 +447,11 @@ Declarator::InitFromType(const Type *baseType, DeclSpecs *ds) {
                 sprintf(buf, "__anon_parameter_%d", i);
                 decl->name = buf;
             }
-            decl->type = decl->type->ResolveUnboundVariability(Variability::Varying);
+            /**
+                JCB:change to default
+            */
+            decl->type = decl->type->ResolveUnboundVariability(g->defaultVarying 
+                    ? Variability::Varying : Variability::Uniform);
 
             if (d->declSpecs->storageClass != SC_NONE)
                 Error(decl->pos, "Storage class \"%s\" is illegal in "
@@ -528,7 +532,11 @@ Declarator::InitFromType(const Type *baseType, DeclSpecs *ds) {
             return;
         }
 
-        returnType = returnType->ResolveUnboundVariability(Variability::Varying);
+        /**
+            JCB: modify to default variability?
+        */
+        returnType = returnType->ResolveUnboundVariability(g->defaultVarying
+                ? Variability::Varying : Variability::Uniform);
 
         bool isExternC =  ds && (ds->storageClass == SC_EXTERN_C);
         bool isExported = ds && ((ds->typeQualifiers & TYPEQUAL_EXPORT) != 0);
@@ -628,7 +636,11 @@ Declaration::GetVariableDeclarations() const {
         if (decl->type->IsVoidType())
             Error(decl->pos, "\"void\" type variable illegal in declaration.");
         else if (CastType<FunctionType>(decl->type) == NULL) {
-            decl->type = decl->type->ResolveUnboundVariability(Variability::Varying);
+             /**
+                JCB: Fix?
+             */
+            decl->type = decl->type->ResolveUnboundVariability(g->defaultVarying
+                    ? Variability::Varying : Variability::Uniform);
             Symbol *sym = new Symbol(decl->name, decl->pos, decl->type,
                                      decl->storageClass);
             m->symbolTable->AddVariable(sym);

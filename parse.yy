@@ -2168,7 +2168,11 @@ lAddDeclaration(DeclSpecs *ds, Declarator *decl) {
             return;
         }
 
-        decl->type = decl->type->ResolveUnboundVariability(Variability::Varying);
+	    /**
+			JCB: Is this where things get assigned to Varying by default? 
+		*/
+        decl->type = decl->type->ResolveUnboundVariability(g->defaultVarying 
+						? Variability::Varying : Variability::Uniform);
 
         const FunctionType *ft = CastType<FunctionType>(decl->type);
         if (ft != NULL) {

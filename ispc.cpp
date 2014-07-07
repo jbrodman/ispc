@@ -39,6 +39,8 @@
 #include "module.h"
 #include "util.h"
 #include "llvmutil.h"
+#include "type.h"
+
 #include <stdio.h>
 #ifdef ISPC_IS_WINDOWS
   #include <windows.h>
@@ -1036,6 +1038,8 @@ Globals::Globals() {
         FATAL("Current directory path too long!");
 #endif
     forceAlignment = -1;
+    
+    defaultVarying = true;
 }
 
 ///////////////////////////////////////////////////////////////////////////
