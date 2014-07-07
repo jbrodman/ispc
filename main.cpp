@@ -164,6 +164,7 @@ devUsage(int ret) {
     printf("        disable-handle-pseudo-memory-ops\tLeave __pseudo_* calls for gather/scatter/etc. in final IR\n");
     printf("        disable-uniform-control-flow\t\tDisable uniform control flow optimizations\n");
     printf("        disable-uniform-memory-optimizations\tDisable uniform-based coherent memory access\n");
+    printf("        default-variability-is-uniform\tChange the default variability to uniform\n");
     printf("    [--yydebug]\t\t\t\tPrint debugging information during parsing\n");
     printf("    [--debug-phase=<value>]\t\tSet optimization phases to dump. --debug-phase=first,210:220,300,305,310:last\n");
 #if defined(LLVM_3_4) || defined(LLVM_3_5)
@@ -457,6 +458,8 @@ int main(int Argc, char *Argv[]) {
                 g->opt.disableGatherScatterFlattening = true;
             else if (!strcmp(opt, "disable-uniform-memory-optimizations"))
                 g->opt.disableUniformMemoryOptimizations = true;
+            else if (!strcmp(opt, "default-variability-is-uniform"))
+                g->defaultVarying = false;
             else {
                 fprintf(stderr, "Unknown --opt= option \"%s\".\n", opt);
                 usage(1);
