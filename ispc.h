@@ -613,7 +613,7 @@ struct Globals {
     int forceAlignment;
 
     /** Default Variability */
-    bool defaultVarying;
+    bool defaultIsVarying;
 };
 
 enum {

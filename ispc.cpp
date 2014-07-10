@@ -39,7 +39,6 @@
 #include "module.h"
 #include "util.h"
 #include "llvmutil.h"
-#include "type.h"
 
 #include <stdio.h>
 #ifdef ISPC_IS_WINDOWS
@@ -1039,7 +1038,7 @@ Globals::Globals() {
 #endif
     forceAlignment = -1;
     
-    defaultVarying = true;
+    defaultIsVarying = true;
 }
 
 ///////////////////////////////////////////////////////////////////////////

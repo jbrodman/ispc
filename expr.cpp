@@ -7832,10 +7832,8 @@ SizeOfExpr::SizeOfExpr(Expr *e, SourcePos p)
 
 SizeOfExpr::SizeOfExpr(const Type *t, SourcePos p)
     : Expr(p), expr(NULL), type(t) {
-        /**
-            JCB: Change to default
-        */
-    type = type->ResolveUnboundVariability(g->defaultVarying
+    // Resolve based on default variability switch
+    type = type->ResolveUnboundVariability(g->defaultIsVarying
             ? Variability::Varying : Variability::Uniform);
 }
 
@@ -8569,7 +8567,7 @@ NewExpr::NewExpr(int typeQual, const Type *t, Expr *init, Expr *count,
         // varying new.
         isVarying = (typeQual == 0) || (typeQual & TYPEQUAL_VARYING);
 
-    // Why Uniform?
+    // uniform because pointed-to types are default uniform
     if (allocType != NULL)
         allocType = allocType->ResolveUnboundVariability(Variability::Uniform);
 }

@@ -459,7 +459,7 @@ int main(int Argc, char *Argv[]) {
             else if (!strcmp(opt, "disable-uniform-memory-optimizations"))
                 g->opt.disableUniformMemoryOptimizations = true;
             else if (!strcmp(opt, "default-variability-is-uniform"))
-                g->defaultVarying = false;
+                g->defaultIsVarying = false;
             else {
                 fprintf(stderr, "Unknown --opt= option \"%s\".\n", opt);
                 usage(1);

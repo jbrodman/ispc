@@ -447,10 +447,9 @@ Declarator::InitFromType(const Type *baseType, DeclSpecs *ds) {
                 sprintf(buf, "__anon_parameter_%d", i);
                 decl->name = buf;
             }
-            /**
-                JCB:change to default
-            */
-            decl->type = decl->type->ResolveUnboundVariability(g->defaultVarying 
+            
+            // Resolve based on default variability switch
+            decl->type = decl->type->ResolveUnboundVariability(g->defaultIsVarying 
                     ? Variability::Varying : Variability::Uniform);
 
             if (d->declSpecs->storageClass != SC_NONE)
@@ -532,10 +531,8 @@ Declarator::InitFromType(const Type *baseType, DeclSpecs *ds) {
             return;
         }
 
-        /**
-            JCB: modify to default variability?
-        */
-        returnType = returnType->ResolveUnboundVariability(g->defaultVarying
+        // Resolve based on default variability switch
+        returnType = returnType->ResolveUnboundVariability(g->defaultIsVarying
                 ? Variability::Varying : Variability::Uniform);
 
         bool isExternC =  ds && (ds->storageClass == SC_EXTERN_C);
@@ -636,10 +633,8 @@ Declaration::GetVariableDeclarations() const {
         if (decl->type->IsVoidType())
             Error(decl->pos, "\"void\" type variable illegal in declaration.");
         else if (CastType<FunctionType>(decl->type) == NULL) {
-             /**
-                JCB: Fix?
-             */
-            decl->type = decl->type->ResolveUnboundVariability(g->defaultVarying
+            // Resolve based on default variability switch
+            decl->type = decl->type->ResolveUnboundVariability(g->defaultIsVarying
                     ? Variability::Varying : Variability::Uniform);
             Symbol *sym = new Symbol(decl->name, decl->pos, decl->type,
                                      decl->storageClass);
